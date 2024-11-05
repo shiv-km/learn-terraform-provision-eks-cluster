@@ -1,0 +1,58 @@
+name: GCP Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      GCP_REGION: us-east1
+      CLOUD_RUN_SERVICE: scraper-app
+
+    steps:
+      # Step 1: Checkout the code from GitHub
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Google Cloud SDK
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          export_default_credentials: true
+
+      # Step 3: Write service account key to a temporary file using printf
+      - name: Write service account key
+        run: printf "%s" "${{ secrets.GCLOUD_SERVICE_KEY }}" > $HOME/gcloud-service-key.json
+
+      # Step 4: Validate JSON syntax (using jq)
+      - name: Validate JSON syntax
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          jq . $HOME/gcloud-service-key.json || exit 1
+
+      # Step 5: Authenticate using the service account key file
+      - name: Authenticate Service Account
+        run: gcloud auth activate-service-account --key-file=$HOME/gcloud-service-key.json
+
+      # Step 6: Use gcloud to build and push the image to GCR
+      - name: Build and submit to Cloud Build
+        run: |
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.CLOUD_RUN_SERVICE }}:$GITHUB_SHA
+
+      # Step 7: Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
+            --image gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.CLOUD_RUN_SERVICE }}:$GITHUB_SHA \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated
+
+      # Optional Step: Clean up service account key
+      - name: Clean up service account key
+        run: rm $HOME/gcloud-service-key.json
