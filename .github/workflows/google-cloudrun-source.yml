@@ -30,10 +30,10 @@ jobs:
         run: printf "%s" "${{ secrets.GCLOUD_SERVICE_KEY }}" > $HOME/gcloud-service-key.json
 
       # Step 4: Validate JSON syntax (using jq)
-      - name: Validate JSON syntax
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          jq . $HOME/gcloud-service-key.json || exit 1
+     # - name: Validate JSON syntax
+     #   run: |
+     #     sudo apt-get update && sudo apt-get install -y jq
+      #    jq . $HOME/gcloud-service-key.json || exit 1
 
       # Step 5: Authenticate using the service account key file
       - name: Authenticate Service Account
