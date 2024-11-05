@@ -18,14 +18,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Google Cloud SDK
+      # Step 2: Authenticate with Google Cloud
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: "${{ secrets.GCLOUD_SERVICE_KEY }}"
+
+      # Step 3: Set up Google Cloud SDK
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          service_account_key: ${{ secrets.GCLOUD_SERVICE_KEY }}
           project_id: ${{ secrets.GCP_PROJECT }}
-          export_default_credentials: true
-
       # Step 3: Write service account key to a temporary file using printf
       - name: Write service account key
         run: printf "%s" "${{ secrets.GCLOUD_SERVICE_KEY }}" > $HOME/gcloud-service-key.json
